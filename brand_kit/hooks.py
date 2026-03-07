@@ -23,3 +23,5 @@ scheduler_events = {
 app_include_css = [
     "/assets/brand_kit/css/brand.css"
 ]
+
+after_migrate = ["brand_kit.tasks.after_migrate"]

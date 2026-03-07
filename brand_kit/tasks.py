@@ -3,6 +3,22 @@ from brand_kit.brand_kit.fields import ensure_brand_settings_doctype
 from brand_kit.brand_kit.apply import apply_all_branding
 
 
+def after_migrate():
+    """Runs automatically after every bench migrate."""
+    from brand_kit.brand_kit.fields import ensure_brand_settings_doctype
+    ensure_brand_settings_doctype()
+    
+    # Also reapply branding in case anything was reset
+    try:
+        brand = frappe.get_single("Brand Settings")
+        if brand.brand_name:
+            from brand_kit.brand_kit.apply import apply_all_branding
+            apply_all_branding(brand)
+    except Exception:
+        pass
+
+
+
 def setup_brand_kit():
     """
     Run once to set up Brand Kit.
