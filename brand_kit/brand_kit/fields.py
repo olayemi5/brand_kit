@@ -208,9 +208,21 @@ BRAND_SETTINGS_FIELDS = [
 
 
 def ensure_brand_settings_doctype():
-    """Create Brand Settings Single DocType if it does not exist."""
+    """
+    Create Brand Settings Single DocType if it does not exist.
+    If it exists but is not Single, fix it automatically.
+    This ensures existing installs are also corrected.
+    """
     if frappe.db.exists("DocType", "Brand Settings"):
-        print("[Brand Kit] Brand Settings DocType already exists.")
+        # Check if it is correctly set as Single
+        is_single = frappe.db.get_value("DocType", "Brand Settings", "is_single")
+        if not is_single:
+            print("[Brand Kit] Brand Settings exists but is not Single — fixing...")
+            frappe.db.sql("UPDATE `tabDocType` SET is_single=1 WHERE name='Brand Settings'")
+            frappe.db.commit()
+            print("[Brand Kit] Brand Settings fixed to Single.")
+        else:
+            print("[Brand Kit] Brand Settings DocType already exists and is correct.")
         return
 
     doc = frappe.get_doc({

@@ -7,6 +7,7 @@ def setup_brand_kit():
     """
     Run once to set up Brand Kit.
     Creates the Brand Settings DocType if missing.
+    Also fixes existing installs where is_single was not set correctly.
 
     Usage:
         bench --site your-site execute brand_kit.tasks.setup_brand_kit
@@ -22,5 +23,6 @@ def reapply_branding():
     Usage:
         bench --site your-site execute brand_kit.tasks.reapply_branding
     """
+    ensure_brand_settings_doctype()  # also fixes is_single if needed
     brand = frappe.get_single("Brand Settings")
     apply_all_branding(brand)
