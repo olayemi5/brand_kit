@@ -90,6 +90,7 @@ def apply_css(brand):
         accent = brand.accent_color or "#4F46E5"
         text = brand.text_color or "#1A1A1A"
         custom = brand.custom_css or ""
+        logo = brand.logo or ""
 
         css = f"""
 /* ── Brand Kit Auto-generated CSS ── */
@@ -114,6 +115,17 @@ body, .frappe-app {{
     background-color: var(--brand-primary) !important;
 }}
 
+/* ── Brand Logo in Navbar ── */
+.navbar-brand img,
+.navbar .brand-logo img {{
+    content: url('{logo}') !important;
+    height: 32px !important;
+    width: auto !important;
+    display: inline-block !important;
+}}
+
+
+
 .btn-primary, .btn-default.btn-primary {{
     background-color: var(--brand-primary) !important;
     border-color: var(--brand-primary) !important;
@@ -137,12 +149,30 @@ a, .indicator-pill {{
 {custom}
 """
 
-        # Write to public CSS file
         import os
-        css_path = frappe.get_app_path("brand_kit", "public", "css", "brand.css")
-        os.makedirs(os.path.dirname(css_path), exist_ok=True)
-        with open(css_path, "w") as f:
+
+        # Write to site's public folder — persists without bench build
+        site_path = frappe.get_site_path("public", "files", "brand.css")
+        os.makedirs(os.path.dirname(site_path), exist_ok=True)
+        with open(site_path, "w") as f:
             f.write(css)
+
+        # Also write to app public folder as fallback
+        app_css_path = frappe.get_app_path("brand_kit", "public", "css", "brand.css")
+        os.makedirs(os.path.dirname(app_css_path), exist_ok=True)
+        with open(app_css_path, "w") as f:
+            f.write(css)
+
+        # Inject CSS directly into Website Settings head_html so it always loads
+        frappe.db.sql(
+            """INSERT INTO `tabSingles` (doctype, field, value)
+               VALUES ('Website Settings', 'head_html', %s)
+               ON DUPLICATE KEY UPDATE value = %s""",
+            (f"<style>{css}</style>", f"<style>{css}</style>")
+        )
+        frappe.db.commit()
+        frappe.clear_cache()
+        frappe.cache().flushall()
 
         print("[Brand Kit] Applied CSS theme.")
     except Exception as e:
