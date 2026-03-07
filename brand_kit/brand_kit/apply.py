@@ -57,21 +57,29 @@ def apply_system_settings(brand):
 def apply_website_settings(brand):
     try:
         ws = frappe.get_single("Website Settings")
-
         if brand.logo:
             ws.brand_html = f'<img src="{brand.logo}" alt="{brand.brand_name}" style="height:40px;">'
         if brand.favicon:
             ws.favicon = brand.favicon
+            for dt in ("Website Settings", "System Settings"):
+                frappe.db.sql(
+                    """INSERT INTO `tabSingles` (doctype, field, value)
+                       VALUES (%s, 'favicon', %s)
+                       ON DUPLICATE KEY UPDATE value = %s""",
+                    (dt, brand.favicon, brand.favicon)
+                )
         if brand.brand_name:
             ws.title_prefix = brand.brand_name
         if brand.website_headline:
-            ws.home_page = ws.home_page  # preserve
+            ws.home_page = ws.home_page
         if brand.website_description:
             ws.description = brand.website_description
         if brand.support_email:
             ws.email = brand.support_email
-
         ws.save(ignore_permissions=True)
+        frappe.db.commit()
+        frappe.clear_cache()
+        frappe.cache().flushall()
         print("[Brand Kit] Applied website settings.")
     except Exception as e:
         frappe.log_error(title="Brand Kit: Website Settings", message=str(e))
