@@ -215,10 +215,10 @@ def ensure_brand_settings_doctype():
     """
     if frappe.db.exists("DocType", "Brand Settings"):
         # Check if it is correctly set as Single
-        is_single = frappe.db.get_value("DocType", "Brand Settings", "is_single")
+        is_single = frappe.db.sql("SELECT issingle FROM `tabDocType` WHERE name='Brand Settings'")[0][0]
         if not is_single:
             print("[Brand Kit] Brand Settings exists but is not Single — fixing...")
-            frappe.db.sql("UPDATE `tabDocType` SET is_single=1 WHERE name='Brand Settings'")
+            frappe.db.sql("UPDATE `tabDocType` SET issingle=1 WHERE name='Brand Settings'")
             frappe.db.commit()
             print("[Brand Kit] Brand Settings fixed to Single.")
         else:

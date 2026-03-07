@@ -1,0 +1,44 @@
+
+/* ── Brand Kit Auto-generated CSS ── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+    --brand-primary: #171717;
+    --brand-secondary: #F5F5F5;
+    --brand-accent: #4F46E5;
+    --brand-text: #1A1A1A;
+    --brand-font: 'Inter', sans-serif;
+    --brand-font-size: 14px;
+}
+
+body, .frappe-app {
+    font-family: var(--brand-font) !important;
+    font-size: var(--brand-font-size) !important;
+    color: var(--brand-text) !important;
+}
+
+.navbar, .navbar-brand {
+    background-color: var(--brand-primary) !important;
+}
+
+.btn-primary, .btn-default.btn-primary {
+    background-color: var(--brand-primary) !important;
+    border-color: var(--brand-primary) !important;
+    color: #fff !important;
+}
+
+.btn-primary:hover {
+    background-color: var(--brand-accent) !important;
+    border-color: var(--brand-accent) !important;
+}
+
+a, .indicator-pill {
+    color: var(--brand-accent) !important;
+}
+
+.page-head {
+    background-color: var(--brand-secondary) !important;
+}
+
+/* ── Custom CSS ── */
+

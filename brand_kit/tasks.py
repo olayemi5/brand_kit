@@ -6,23 +6,42 @@ from brand_kit.brand_kit.apply import apply_all_branding
 def setup_brand_kit():
     """
     Run once to set up Brand Kit.
-    Creates the Brand Settings DocType if missing.
-    Also fixes existing installs where is_single was not set correctly.
-
     Usage:
         bench --site your-site execute brand_kit.tasks.setup_brand_kit
     """
     ensure_brand_settings_doctype()
-    print("[Brand Kit] Setup complete. Go to Brand Settings in your site to configure.")
+    print("[Brand Kit] Setup complete. Go to Brand Settings to configure.")
 
 
 def reapply_branding():
     """
-    Manually re-trigger branding application without saving the form.
-
+    Manually re-trigger branding application.
     Usage:
         bench --site your-site execute brand_kit.tasks.reapply_branding
     """
-    ensure_brand_settings_doctype()  # also fixes is_single if needed
+    ensure_brand_settings_doctype()
     brand = frappe.get_single("Brand Settings")
     apply_all_branding(brand)
+
+
+def sync_branding_if_changed():
+    """
+    Runs every minute via scheduler.
+    Checks if Brand Settings has been modified recently and applies if so.
+    This ensures branding is always applied even if doc_events hook misses.
+    """
+    try:
+        # Check if Brand Settings was modified in the last 2 minutes
+        result = frappe.db.sql(
+            """SELECT modified FROM `tabBrand Settings`
+               WHERE TIMESTAMPDIFF(SECOND, modified, NOW()) < 120
+               LIMIT 1"""
+        )
+
+        if result:
+            brand = frappe.get_single("Brand Settings")
+            apply_all_branding(brand)
+            print("[Brand Kit] Synced branding from scheduler.")
+    except Exception:
+        # tabBrand Settings won't exist on first run — silently ignore
+        pass

@@ -15,13 +15,37 @@ def get_brand():
 # 1. System Settings — name, logo, favicon
 # ─────────────────────────────────────────────
 
+def _upsert_single(doctype, field, value):
+    """Insert or update a value in tabSingles — works whether the row exists or not."""
+    frappe.db.sql(
+        """INSERT INTO `tabSingles` (doctype, field, value)
+           VALUES (%s, %s, %s)
+           ON DUPLICATE KEY UPDATE value = %s""",
+        (doctype, field, value, value)
+    )
+
+
 def apply_system_settings(brand):
     try:
-        sys = frappe.get_single("System Settings")
-        if brand.brand_name:
-            sys.system_title = brand.brand_name
-        sys.save(ignore_permissions=True)
-        print("[Brand Kit] Applied system name.")
+        if not brand.brand_name:
+            return
+
+        name = brand.brand_name
+
+        # Upsert all known title fields across Frappe versions
+        for field in ("app_name", "head_title", "system_title"):
+            _upsert_single("System Settings", field, name)
+
+        for field in ("app_name", "title_prefix", "home_title"):
+            _upsert_single("Website Settings", field, name)
+
+        frappe.db.commit()
+
+        # Clear all caches so change takes effect immediately for all users
+        frappe.clear_cache()
+        frappe.cache().flushall()
+
+        print(f"[Brand Kit] Applied system name: {name}")
     except Exception as e:
         frappe.log_error(title="Brand Kit: System Settings", message=str(e))
 
