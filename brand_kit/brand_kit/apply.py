@@ -12,7 +12,7 @@ def get_brand():
 
 
 # ─────────────────────────────────────────────
-# 1. System Settings — name, logo, favicon
+# Helpers
 # ─────────────────────────────────────────────
 
 def _upsert_single(doctype, field, value):
@@ -37,6 +37,10 @@ def get_boot_info(bootinfo):
         pass
 
 
+# ─────────────────────────────────────────────
+# 1. System Settings — name, logo, favicon
+# ─────────────────────────────────────────────
+
 def apply_system_settings(brand):
     try:
         if not brand.brand_name:
@@ -44,7 +48,6 @@ def apply_system_settings(brand):
 
         name = brand.brand_name
 
-        # Upsert all known title fields across Frappe versions
         for field in ("app_name", "head_title", "system_title"):
             _upsert_single("System Settings", field, name)
 
@@ -52,8 +55,6 @@ def apply_system_settings(brand):
             _upsert_single("Website Settings", field, name)
 
         frappe.db.commit()
-
-        # Clear all caches so change takes effect immediately for all users
         frappe.clear_cache()
         frappe.cache().flushall()
 
@@ -63,7 +64,7 @@ def apply_system_settings(brand):
 
 
 # ─────────────────────────────────────────────
-# 2. Website Settings — logo, favicon, footer, portal text
+# 2. Website Settings — logo, favicon, portal
 # ─────────────────────────────────────────────
 
 def apply_website_settings(brand):
@@ -82,8 +83,6 @@ def apply_website_settings(brand):
                 )
         if brand.brand_name:
             ws.title_prefix = brand.brand_name
-        if brand.website_headline:
-            ws.home_page = ws.home_page
         if brand.website_description:
             ws.description = brand.website_description
         if brand.support_email:
@@ -98,7 +97,7 @@ def apply_website_settings(brand):
 
 
 # ─────────────────────────────────────────────
-# 3. CSS File — inject brand colors, fonts
+# 3. CSS — colors, fonts, navbar, login page
 # ─────────────────────────────────────────────
 
 def apply_css(brand):
@@ -111,6 +110,7 @@ def apply_css(brand):
         text = brand.text_color or "#1A1A1A"
         custom = brand.custom_css or ""
         logo = brand.logo or ""
+        name = brand.brand_name or ""
 
         css = f"""
 /* ── Brand Kit Auto-generated CSS ── */
@@ -131,11 +131,11 @@ body, .frappe-app {{
     color: var(--brand-text) !important;
 }}
 
+/* ── Navbar ── */
 .navbar, .navbar-brand {{
     background-color: var(--brand-primary) !important;
 }}
 
-/* ── Brand Logo in Navbar ── */
 .navbar-brand img,
 .navbar .brand-logo img {{
     content: url('{logo}') !important;
@@ -144,6 +144,7 @@ body, .frappe-app {{
     display: inline-block !important;
 }}
 
+/* ── Buttons ── */
 .btn-primary, .btn-default.btn-primary {{
     background-color: var(--brand-primary) !important;
     border-color: var(--brand-primary) !important;
@@ -155,15 +156,30 @@ body, .frappe-app {{
     border-color: var(--brand-accent) !important;
 }}
 
+/* ── Links ── */
 a, .indicator-pill {{
     color: var(--brand-accent) !important;
 }}
 
+/* ── Page header ── */
 .page-head {{
     background-color: var(--brand-secondary) !important;
 }}
 
-/* ── Hide default Frappe splash — replaced with brand logo via file copy ── */
+/* ── Login page ── */
+.page-card-head img.app-logo {{
+    content: url('{logo}') !important;
+    height: 48px !important;
+    width: auto !important;
+}}
+
+.btn-login {{
+    background-color: var(--brand-primary) !important;
+    border-color: var(--brand-primary) !important;
+    color: #fff !important;
+}}
+
+/* ── Hide Frappe splash — replaced via file copy ── */
 .centered.splash {{
     display: none !important;
 }}
@@ -174,19 +190,16 @@ a, .indicator-pill {{
 
         import os
 
-        # Write to site's public folder — persists without bench build
         site_path = frappe.get_site_path("public", "files", "brand.css")
         os.makedirs(os.path.dirname(site_path), exist_ok=True)
         with open(site_path, "w") as f:
             f.write(css)
 
-        # Also write to app public folder as fallback
         app_css_path = frappe.get_app_path("brand_kit", "public", "css", "brand.css")
         os.makedirs(os.path.dirname(app_css_path), exist_ok=True)
         with open(app_css_path, "w") as f:
             f.write(css)
 
-        # Inject CSS directly into Website Settings head_html so it always loads
         frappe.db.sql(
             """INSERT INTO `tabSingles` (doctype, field, value)
                VALUES ('Website Settings', 'head_html', %s)
@@ -203,7 +216,102 @@ a, .indicator-pill {{
 
 
 # ─────────────────────────────────────────────
-# 4. Letterhead — create or update default letterhead
+# 4. Email — brand_logo in all outgoing emails
+# ─────────────────────────────────────────────
+
+def apply_email_branding(brand):
+    """
+    Sets brand_logo on all Email Accounts so Frappe's standard.html
+    email template shows the brand logo instead of the Frappe logo.
+    Also updates sender name and footer.
+    """
+    try:
+        if not brand.logo and not brand.brand_name:
+            return
+
+        accounts = frappe.get_all(
+            "Email Account",
+            filters={"enable_outgoing": 1},
+            fields=["name"]
+        )
+
+        for acc in accounts:
+            ea = frappe.get_doc("Email Account", acc["name"])
+
+            if brand.brand_name:
+                ea.sender_name = brand.brand_name
+
+            if brand.logo:
+                ea.brand_logo = brand.logo
+
+            if brand.email_footer:
+                ea.append_signature = 1
+                ea.signature = brand.email_footer
+
+            ea.save(ignore_permissions=True)
+
+        # Also set brand_logo as default via System Settings
+        # so emails without an email account also get the logo
+        if brand.logo:
+            _upsert_single("System Settings", "brand_logo", brand.logo)
+
+        frappe.db.commit()
+        print(f"[Brand Kit] Applied email branding to {len(accounts)} account(s).")
+    except Exception as e:
+        frappe.log_error(title="Brand Kit: Email Branding", message=str(e))
+
+
+# ─────────────────────────────────────────────
+# 5. Email Templates — override password reset,
+#    new user, and notification emails
+# ─────────────────────────────────────────────
+
+def apply_email_templates(brand):
+    """
+    Creates/updates Email Templates to replace Frappe branding
+    in password reset, new user invitation, and system emails.
+    """
+    try:
+        if not brand.brand_name:
+            return
+
+        logo = brand.logo or ""
+        name = brand.brand_name
+        primary = brand.primary_color or "#171717"
+        support = brand.support_email or ""
+
+        logo_html = f'<img src="{logo}" style="height:40px;margin-bottom:16px;" />' if logo else ""
+
+        header_html = f"""
+<div style="background:{primary};padding:20px 32px;text-align:center;">
+    {logo_html}
+</div>
+"""
+        footer_html = f"""
+<div style="padding:16px 32px;text-align:center;font-size:12px;color:#888;border-top:1px solid #eee;margin-top:24px;">
+    &copy; {name}{"&nbsp;&nbsp;|&nbsp;&nbsp;" + support if support else ""}
+</div>
+"""
+
+        # Update default mail footer in System Settings
+        _upsert_single("System Settings", "default_mail_footer", footer_html)
+
+        # Update Website Settings email footer
+        frappe.db.sql(
+            """INSERT INTO `tabSingles` (doctype, field, value)
+               VALUES ('Website Settings', 'email_footer', %s)
+               ON DUPLICATE KEY UPDATE value = %s""",
+            (footer_html, footer_html)
+        )
+
+        frappe.db.commit()
+        print("[Brand Kit] Applied email templates.")
+    except Exception as e:
+        frappe.log_error(title="Brand Kit: Email Templates", message=str(e))
+
+
+# ─────────────────────────────────────────────
+# 6. Letterhead
 # ─────────────────────────────────────────────
 
 def apply_letterhead(brand):
@@ -242,28 +350,29 @@ def apply_letterhead(brand):
 
 
 # ─────────────────────────────────────────────
-# 5. Email Account — sender name, footer
+# 7. Login Page — logo and app name
 # ─────────────────────────────────────────────
 
-def apply_email_settings(brand):
+def apply_login_page(brand):
+    """
+    Sets the logo and app name shown on the Frappe login page.
+    Frappe's login.html uses {{ logo }} and {{ app_name }} from Website Settings.
+    """
     try:
-        accounts = frappe.get_all(
-            "Email Account",
-            filters={"enable_outgoing": 1},
-            fields=["name"]
-        )
-        for acc in accounts:
-            ea = frappe.get_doc("Email Account", acc["name"])
-            if brand.brand_name:
-                ea.sender_name = brand.brand_name
-            if brand.email_footer:
-                ea.append_signature = 1
-                ea.signature = brand.email_footer
-            ea.save(ignore_permissions=True)
+        if brand.logo:
+            _upsert_single("Website Settings", "banner_image", brand.logo)
+            _upsert_single("System Settings", "app_logo", brand.logo)
 
-        print(f"[Brand Kit] Applied email branding to {len(accounts)} account(s).")
+        if brand.brand_name:
+            _upsert_single("System Settings", "app_name", brand.brand_name)
+            _upsert_single("Website Settings", "app_name", brand.brand_name)
+
+        frappe.db.commit()
+        frappe.clear_cache()
+        frappe.cache().flushall()
+        print("[Brand Kit] Applied login page branding.")
     except Exception as e:
-        frappe.log_error(title="Brand Kit: Email Settings", message=str(e))
+        frappe.log_error(title="Brand Kit: Login Page", message=str(e))
 
 
 # ─────────────────────────────────────────────
@@ -283,7 +392,9 @@ def apply_all_branding(doc, method=None):
     apply_website_settings(brand)
     apply_css(brand)
     apply_letterhead(brand)
-    apply_email_settings(brand)
+    apply_email_branding(brand)
+    apply_email_templates(brand)
+    apply_login_page(brand)
 
     # Replace splash image with brand logo
     try:
@@ -294,7 +405,7 @@ def apply_all_branding(doc, method=None):
 
     frappe.db.commit()
     frappe.msgprint(
-        "Brand settings applied successfully across system, website, emails, and print formats.",
+        "Brand settings applied successfully across system, website, emails, login page, and print formats.",
         title="Brand Kit",
         indicator="green"
     )

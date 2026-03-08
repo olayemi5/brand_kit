@@ -1,151 +1,135 @@
-# Brand Kit
+# Brand Kit for Frappe/ERPNext
 
-A Frappe app for centralized branding. Set your brand once — it applies everywhere.
-
-## What it does
-
-| Area | What gets updated |
-|---|---|
-| System | System title / app name |
-| Website | Logo, favicon, tagline, portal description |
-| UI Theme | Primary color, accent, font, custom CSS |
-| Email | Sender name, email footer/signature |
-| Letterhead | Auto-generated header/footer for print formats |
+A Frappe app that gives you complete white-label control over your Frappe/ERPNext system. Configure your brand once and it applies everywhere — no coding, no terminal commands, just fill in a form and save.
 
 ---
 
-## Installation (Fresh Server)
+## What It Does
 
-### Step 1 — Create the app
-```bash
-cd ~/frappe-bench
-bench new-app brand_kit
-```
-When prompted:
-- **App Title** → `Brand Kit`
-- **App Description** → `Centralized branding for Frappe/ERPNext`
-- **App Publisher** → Your name or company
-- **App Email** → Your email
-- **App License** → `MIT`
+Brand Kit replaces all Frappe default branding with your own across:
 
-### Step 2 — Copy files into the app
-Copy all provided files into:
-```
-~/frappe-bench/apps/brand_kit/brand_kit/
-```
-File structure should look like:
-```
-apps/brand_kit/
-├── requirements.txt
-├── setup.py
-├── README.md
-└── brand_kit/
-    ├── __init__.py
-    ├── tasks.py
-    └── brand_kit/
-        ├── __init__.py
-        ├── hooks.py
-        ├── fields.py
-        ├── apply.py
-        └── context.py
-```
-
-### Step 3 — Install dependencies
-```bash
-cd ~/frappe-bench
-./env/bin/pip install -r apps/brand_kit/requirements.txt
-```
-
-### Step 4 — Install app on your site
-```bash
-bench --site your-site install-app brand_kit
-```
-
-### Step 5 — Run migrate
-```bash
-bench --site your-site migrate
-```
-
-### Step 6 — Restart bench
-```bash
-bench restart
-```
-
-### Step 7 — Create the Brand Settings DocType
-```bash
-bench --site your-site console
-```
-Then in the console:
-```python
-from brand_kit.brand_kit.fields import ensure_brand_settings_doctype
-ensure_brand_settings_doctype()
-```
+| Area | What Changes |
+|------|-------------|
+| Navbar | Your logo and brand colors |
+| Login Page | Your logo and app name |
+| Browser Tab | Your favicon and page title |
+| Splash Screen | Your logo on page load |
+| Buttons & Links | Your primary and accent colors |
+| Emails | Your sender name, logo, and footer |
+| Letterhead | Your logo, colors, and address |
+| Print Formats | Your brand colors and letterhead |
 
 ---
 
-## Usage
-
-1. Go to your site and search for **Brand Settings** in the search bar
-2. Fill in your brand name, colors, logo, fonts etc.
-3. Click **Save** — branding is applied automatically to all areas
-
----
-
-## If something goes wrong — Reinstall from scratch
+## Installation
 
 ```bash
-# Step 1 — Uninstall from site
-bench --site your-site uninstall-app brand_kit
+# Get the app
+bench get-app brand_kit https://github.com/your-username/brand_kit.git
 
-# Step 2 — Remove the app
-bench remove-app brand_kit
+# Install on your site
+bench --site your-site.com install-app brand_kit
 
-# Step 3 — Start fresh from Step 1 above
-```
+# Run migrations
+bench --site your-site.com migrate
 
-If the app directory was deleted before uninstalling:
-```bash
-# Remove from database manually
-bench --site your-site console
-```
-```python
-frappe.db.delete("Installed Applications", {"app_name": "brand_kit"})
-frappe.db.commit()
-```
-```bash
-# Remove from apps list
-sed -i '/brand_kit/d' ~/frappe-bench/sites/apps.txt
-sed -i '/brand_kit/d' ~/frappe-bench/sites/your-site/site_config.json
+# Restart
 bench restart
 ```
 
 ---
 
-## Manual reapply
+## Setup
 
-To reapply branding without opening the form:
-```bash
-bench --site your-site execute brand_kit.tasks.reapply_branding
-```
+1. Go to **Brand Settings** in your Frappe desk
+2. Fill in your brand details:
+   - Brand Name
+   - Logo
+   - Favicon
+   - Colors
+   - Email Footer
+   - Company Address
+3. Click **Save**
+
+That's it. Everything applies automatically.
 
 ---
 
-## Fields Reference
+## Brand Settings Fields
 
 ### Brand Identity
-- Brand Name, Tagline, Logo, Favicon
+- **Brand Name** — Used as system name, email sender name, and page titles
+- **Logo** — Shown in navbar, login page, emails, and print formats
+- **Favicon** — Browser tab icon (.ico or .png, 32x32)
+- **Tagline** — Short tagline shown on portal and emails
 
-### Colors
-- Primary Color, Secondary Color, Accent Color, Text Color
+### Brand Colors
+- **Primary Color** — Navbar, buttons, email header
+- **Secondary Color** — Page header background
+- **Accent Color** — Links, badges, hover states
+- **Text Color** — Body text color
 
 ### Typography
-- Font Family (Inter, Roboto, Poppins, Lato, etc.), Base Font Size
+- **Font Family** — Choose from Inter, Roboto, Poppins, Lato, Montserrat, Open Sans, Nunito, Raleway
+- **Base Font Size** — 13px, 14px, 15px, or 16px
 
 ### Email Branding
-- Email Header Color, Email Logo, Support Email, Email Footer Text
+- **Email Footer Text** — Appended to all outgoing emails
+- **Support Email** — Shown in footer and website settings
+- **Email Header Color** — Background color of email header banner
+- **Email Logo** — Separate logo for emails (optional)
 
 ### Website & Portal
-- Portal Headline, Portal Description, Footer Links, Custom CSS
+- **Portal Headline** — Shown on the portal home page
+- **Portal Description** — Meta description for the portal
+- **Footer Links** — JSON array of footer navigation links
+- **Custom CSS** — Any additional CSS injected into every page
 
 ### Print & Letterhead
-- Letterhead Top/Bottom HTML, Print Primary Color, Company Address
+- **Letterhead Top HTML** — Custom HTML for top of printed documents
+- **Letterhead Bottom HTML** — Custom HTML for bottom of printed documents
+- **Print Primary Color** — Color used in print format headers
+- **Company Address** — Shown on letterheads and print formats
+
+---
+
+## How It Works
+
+Every time you save Brand Settings, the app automatically:
+
+1. Updates **System Settings** and **Website Settings** with your brand name
+2. Sets your **logo** in Navbar Settings and Website Settings
+3. Sets your **favicon** in all the right places
+4. Injects **custom CSS** with your colors and fonts into every page
+5. Updates all **outgoing email accounts** with your sender name and logo
+6. Sets the **email footer** on all outgoing emails
+7. Creates or updates your **letterhead** for print formats
+8. Replaces the **splash screen** image with your logo
+9. Updates the **login page** with your logo and app name
+10. Flushes all caches so changes are instant for all users
+
+---
+
+## Manual Commands
+
+```bash
+# Initial setup (creates Brand Settings DocType)
+bench --site your-site.com execute brand_kit.tasks.setup_brand_kit
+
+# Re-apply all branding (useful after Frappe updates)
+bench --site your-site.com execute brand_kit.tasks.reapply_branding
+```
+
+---
+
+## Requirements
+
+- Frappe v14 or v15
+- ERPNext (optional)
+- Python 3.10+
+
+---
+
+## License
+
+MIT

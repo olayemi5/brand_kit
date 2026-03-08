@@ -17,11 +17,11 @@ body, .frappe-app {
     color: var(--brand-text) !important;
 }
 
+/* ── Navbar ── */
 .navbar, .navbar-brand {
     background-color: var(--brand-primary) !important;
 }
 
-/* ── Brand Logo in Navbar ── */
 .navbar-brand img,
 .navbar .brand-logo img {
     content: url('/files/raaamie_R_icon.svg') !important;
@@ -30,6 +30,7 @@ body, .frappe-app {
     display: inline-block !important;
 }
 
+/* ── Buttons ── */
 .btn-primary, .btn-default.btn-primary {
     background-color: var(--brand-primary) !important;
     border-color: var(--brand-primary) !important;
@@ -41,15 +42,30 @@ body, .frappe-app {
     border-color: var(--brand-accent) !important;
 }
 
+/* ── Links ── */
 a, .indicator-pill {
     color: var(--brand-accent) !important;
 }
 
+/* ── Page header ── */
 .page-head {
     background-color: var(--brand-secondary) !important;
 }
 
-/* ── Hide default Frappe splash — replaced with brand logo via file copy ── */
+/* ── Login page ── */
+.page-card-head img.app-logo {
+    content: url('/files/raaamie_R_icon.svg') !important;
+    height: 48px !important;
+    width: auto !important;
+}
+
+.btn-login {
+    background-color: var(--brand-primary) !important;
+    border-color: var(--brand-primary) !important;
+    color: #fff !important;
+}
+
+/* ── Hide Frappe splash — replaced via file copy ── */
 .centered.splash {
     display: none !important;
 }
