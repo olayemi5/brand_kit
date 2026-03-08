@@ -34,5 +34,8 @@ default_mail_footer = ""
 
 # Expose brand logo method to all Jinja/email templates
 jinja = {
-    "methods": ["brand_kit.brand_kit.apply.get_brand_logo_for_email"]
+    "methods": [
+        "brand_kit.brand_kit.apply.get_brand_logo_for_email",
+        "brand_kit.brand_kit.apply.get_brand_footer"
+    ]
 }

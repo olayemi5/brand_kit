@@ -16,4 +16,11 @@
     <div class="email-pixel">
         <!--email_open_check-->
     </div>
+
+    {% set brand_footer = get_brand_footer() %}
+    {% if brand_footer %}
+    <div style="margin-top:16px;padding-top:12px;border-top:1px solid #eee;text-align:center;">
+        {{ brand_footer }}
+    </div>
+    {% endif %}
 </div>

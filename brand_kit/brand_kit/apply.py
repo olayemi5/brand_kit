@@ -52,6 +52,32 @@ def get_brand_logo_for_email():
         return ""
 
 
+def get_brand_footer():
+    """Exposed as Jinja method — injects brand footer into all email templates."""
+    try:
+        brand_name = frappe.db.get_single_value("Brand Settings", "brand_name")
+        email_footer = frappe.db.get_single_value("Brand Settings", "email_footer")
+        logo = frappe.db.get_single_value("Brand Settings", "logo")
+
+        if not brand_name:
+            return ""
+
+        site_url = frappe.utils.get_url()
+        logo_abs = f"{site_url}{logo}" if logo and logo.startswith("/") else logo or ""
+
+        html = ""
+        if logo_abs:
+            html += f'<div style="margin-bottom:8px;"><img src="{logo_abs}" style="height:32px;width:auto;" /></div>'
+        if email_footer:
+            html += f'<div style="font-size:12px;color:#888;">{email_footer}</div>'
+        elif brand_name:
+            html += f'<div style="font-size:12px;color:#888;">Powered by {brand_name}</div>'
+
+        return html
+    except Exception:
+        return ""
+
+
 def apply_system_settings(brand):
     try:
         if not brand.brand_name:
@@ -286,9 +312,21 @@ def apply_email_branding(brand):
                 if "signature" in email_account_fields:
                     ea.signature = signature_html
 
-            # Clear ERPNext default footer on the account
+            # Set brand footer directly on email account.footer
+            # This is passed as email_account_footer to email_footer.html template
+            site_url = frappe.utils.get_url()
+            logo_abs = f"{site_url}{brand.logo}" if brand.logo and brand.logo.startswith("/") else brand.logo or ""
+            brand_name = brand.brand_name or ""
+            footer_text = brand.email_footer or f"Powered by {brand_name}"
+
+            account_footer = ""
+            if logo_abs:
+                account_footer += f'<div style="margin-bottom:8px;text-align:center;"><img src="{logo_abs}" style="height:32px;width:auto;" /></div>'
+            if footer_text:
+                account_footer += f'<div style="font-size:12px;color:#888;text-align:center;">{footer_text}</div>'
+
             if "footer" in email_account_fields:
-                ea.footer = ""
+                ea.footer = account_footer
 
             ea.save(ignore_permissions=True)
 
