@@ -5,6 +5,9 @@ app_description = "Centralized branding for Frappe/ERPNext"
 app_email = "olayemistephen007@gmail.com"
 app_license = "mit"
 
+after_install = "brand_kit.tasks.after_install"
+after_migrate = "brand_kit.tasks.after_migrate"
+
 doc_events = {
     "Brand Settings": {
         "on_update": "brand_kit.brand_kit.apply.apply_all_branding",
@@ -24,4 +27,12 @@ app_include_css = [
     "/assets/brand_kit/css/brand.css"
 ]
 
-after_migrate = ["brand_kit.tasks.after_migrate"]
+boot_session = "brand_kit.brand_kit.apply.get_boot_info"
+
+# Override ERPNext default mail footer
+default_mail_footer = ""
+
+# Expose brand logo method to all Jinja/email templates
+jinja = {
+    "methods": ["brand_kit.brand_kit.apply.get_brand_logo_for_email"]
+}

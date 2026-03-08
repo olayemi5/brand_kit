@@ -41,6 +41,17 @@ def get_boot_info(bootinfo):
 # 1. System Settings — name, logo, favicon
 # ─────────────────────────────────────────────
 
+def get_brand_logo_for_email():
+    """Exposed as Jinja method — injects brand logo into all email templates."""
+    try:
+        logo = frappe.db.get_single_value("Brand Settings", "logo")
+        if logo and logo.startswith("/"):
+            return f"{frappe.utils.get_url()}{logo}"
+        return logo or ""
+    except Exception:
+        return ""
+
+
 def apply_system_settings(brand):
     try:
         if not brand.brand_name:
@@ -224,6 +235,7 @@ def apply_email_branding(brand):
     Sets brand_logo on all Email Accounts so Frappe's standard.html
     email template shows the brand logo instead of the Frappe logo.
     Also updates sender name and footer.
+    Works for all Frappe/ERPNext versions by checking available fields.
     """
     try:
         if not brand.logo and not brand.brand_name:
@@ -235,23 +247,67 @@ def apply_email_branding(brand):
             fields=["name"]
         )
 
+        # Get actual available fields on Email Account to avoid errors
+        email_account_fields = [f.fieldname for f in frappe.get_meta("Email Account").fields]
+
+        # Make logo URL absolute for emails — relative URLs don't work in email clients
+        site_url = frappe.utils.get_url()
+        logo_url = f"{site_url}{brand.logo}" if brand.logo and brand.logo.startswith("/") else brand.logo
+
         for acc in accounts:
             ea = frappe.get_doc("Email Account", acc["name"])
 
+            # Update sender name — try all known field names across versions
             if brand.brand_name:
-                ea.sender_name = brand.brand_name
+                if "email_account_name" in email_account_fields:
+                    ea.email_account_name = brand.brand_name
+                if "sender_name" in email_account_fields:
+                    ea.sender_name = brand.brand_name
 
-            if brand.logo:
-                ea.brand_logo = brand.logo
+            # Set brand logo for email template — must be absolute URL
+            if brand.logo and "brand_logo" in email_account_fields:
+                ea.brand_logo = logo_url
 
-            if brand.email_footer:
-                ea.append_signature = 1
-                ea.signature = brand.email_footer
+            # Build signature with logo + footer
+            site_url = frappe.utils.get_url()
+            logo_abs = f"{site_url}{brand.logo}" if brand.logo and brand.logo.startswith("/") else brand.logo or ""
+            name = brand.brand_name or ""
+            footer_text = brand.email_footer or ""
+
+            signature_html = ""
+            if logo_abs:
+                signature_html += f'<div style="margin:16px 0 8px 0;"><img src="{logo_abs}" style="height:40px;width:auto;" /></div>'
+            if footer_text:
+                signature_html += f'<div style="font-size:12px;color:#888;">{footer_text}</div>'
+
+            if signature_html:
+                if "add_signature" in email_account_fields:
+                    ea.add_signature = 1
+                if "signature" in email_account_fields:
+                    ea.signature = signature_html
+
+            # Clear ERPNext default footer on the account
+            if "footer" in email_account_fields:
+                ea.footer = ""
 
             ea.save(ignore_permissions=True)
 
-        # Also set brand_logo as default via System Settings
-        # so emails without an email account also get the logo
+        # Clear ERPNext/Frappe default mail footer globally
+        frappe.db.sql(
+            """UPDATE `tabSingles`
+               SET value = ''
+               WHERE field = 'default_mail_footer'"""
+        )
+
+        # Clear company default mail footer
+        frappe.db.sql(
+            """UPDATE `tabCompany`
+               SET default_mail_footer = ''
+               WHERE default_mail_footer IS NOT NULL
+               AND default_mail_footer != ''"""
+        )
+
+        # Set brand_logo in System Settings for emails without an account
         if brand.logo:
             _upsert_single("System Settings", "brand_logo", brand.logo)
 
@@ -268,8 +324,8 @@ def apply_email_branding(brand):
 
 def apply_email_templates(brand):
     """
-    Creates/updates Email Templates to replace Frappe branding
-    in password reset, new user invitation, and system emails.
+    Disables Frappe/ERPNext default footer and replaces with brand footer.
+    Works for all users automatically on Brand Settings save.
     """
     try:
         if not brand.brand_name:
@@ -280,23 +336,32 @@ def apply_email_templates(brand):
         primary = brand.primary_color or "#171717"
         support = brand.support_email or ""
 
-        logo_html = f'<img src="{logo}" style="height:40px;margin-bottom:16px;" />' if logo else ""
+        # Make logo URL absolute for emails
+        site_url = frappe.utils.get_url()
+        logo_abs = f"{site_url}{logo}" if logo and logo.startswith("/") else logo
+        logo_html = f'<img src="{logo_abs}" style="height:40px;margin-bottom:16px;" />' if logo_abs else ""
 
-        header_html = f"""
-<div style="background:{primary};padding:20px 32px;text-align:center;">
-    {logo_html}
-</div>
-"""
         footer_html = f"""
 <div style="padding:16px 32px;text-align:center;font-size:12px;color:#888;border-top:1px solid #eee;margin-top:24px;">
     &copy; {name}{"&nbsp;&nbsp;|&nbsp;&nbsp;" + support if support else ""}
 </div>
 """
 
-        # Update default mail footer in System Settings
-        _upsert_single("System Settings", "default_mail_footer", footer_html)
+        # Disable Frappe standard email footer — removes "Sent via ERPNext"
+        # Delete first to avoid duplicate rows across all installs
+        frappe.db.sql("DELETE FROM `tabSingles` WHERE field='disable_standard_email_footer'")
+        frappe.db.sql("INSERT INTO `tabSingles` (doctype, field, value) VALUES ('System Settings', 'disable_standard_email_footer', '1')")
 
-        # Update Website Settings email footer
+        # Clear all existing default_mail_footer rows — deduplicate
+        frappe.db.sql("DELETE FROM `tabSingles` WHERE field='default_mail_footer'")
+
+        # Set single clean brand footer
+        frappe.db.sql(
+            "INSERT INTO `tabSingles` (doctype, field, value) VALUES ('System Settings', 'default_mail_footer', %s)",
+            (footer_html,)
+        )
+
+        # Set email footer in Website Settings
         frappe.db.sql(
             """INSERT INTO `tabSingles` (doctype, field, value)
                VALUES ('Website Settings', 'email_footer', %s)

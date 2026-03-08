@@ -11,7 +11,6 @@ def _replace_splash_image():
         if not logo:
             return
 
-        # Get actual file path from URL
         site_path = frappe.get_site_path("public", logo.lstrip("/"))
         frappe_splash = frappe.get_app_path("frappe", "public", "images", "frappe-framework-logo.png")
 
@@ -22,6 +21,15 @@ def _replace_splash_image():
             print(f"[Brand Kit] Splash image not found at {site_path}")
     except Exception as e:
         frappe.log_error(title="Brand Kit: Splash Image", message=str(e))
+
+
+def after_install():
+    """
+    Runs automatically after bench install-app brand_kit.
+    Zero manual setup needed.
+    """
+    ensure_brand_settings_doctype()
+    print("[Brand Kit] Installation complete. Go to Brand Settings to configure your brand.")
 
 
 def after_migrate():
@@ -42,7 +50,7 @@ def after_migrate():
 
 def setup_brand_kit():
     """
-    Run once to set up Brand Kit.
+    Run once to set up Brand Kit manually if needed.
     Usage:
         bench --site your-site execute brand_kit.tasks.setup_brand_kit
     """
@@ -59,16 +67,13 @@ def reapply_branding():
     ensure_brand_settings_doctype()
     brand = frappe.get_single("Brand Settings")
     apply_all_branding(brand)
-
-    # Also replace splash image
     _replace_splash_image()
 
 
 def sync_branding_if_changed():
     """
     Runs every minute via scheduler.
-    Checks if Brand Settings has been modified recently and applies if so.
-    This ensures branding is always applied even if doc_events hook misses.
+    Ensures branding is always applied even if doc_events hook misses.
     """
     try:
         result = frappe.db.sql(
@@ -81,5 +86,4 @@ def sync_branding_if_changed():
             apply_all_branding(brand)
             print("[Brand Kit] Synced branding from scheduler.")
     except Exception:
-        # tabBrand Settings won't exist on first run — silently ignore
         pass

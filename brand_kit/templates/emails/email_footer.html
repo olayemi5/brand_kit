@@ -1,0 +1,29 @@
+<div class="email-footer-container text-muted">
+
+    {% set brand_logo_url = brand_logo or "" %}
+
+    {% if brand_logo_url %}
+    <div style="text-align:center;padding:16px 0 8px 0;">
+        <img src="{{ brand_logo_url }}" style="height:40px;width:auto;" />
+    </div>
+    {% endif %}
+
+    {% if email_account_footer %}
+    <div class="email-account-footer">
+        {{ email_account_footer }}
+    </div>
+    {% endif %}
+
+    {% if sender_address %}
+    <div class="sender-address">
+        {% for line in sender_address.splitlines(True) %}
+        <div>{{ line }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="email-pixel">
+        <!--email_open_check-->
+    </div>
+
+</div>
