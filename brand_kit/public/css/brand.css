@@ -3,9 +3,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
-    --brand-primary: #171717;
+    --brand-primary: #c9f0e2;
     --brand-secondary: #F5F5F5;
-    --brand-accent: #4F46E5;
+    --brand-accent: #6b7982;
     --brand-text: #1A1A1A;
     --brand-font: 'Inter', sans-serif;
     --brand-font-size: 14px;
@@ -24,13 +24,11 @@ body, .frappe-app {
 /* ── Brand Logo in Navbar ── */
 .navbar-brand img,
 .navbar .brand-logo img {
-    content: url('') !important;
+    content: url('/files/raaamie_R_icon.svg') !important;
     height: 32px !important;
     width: auto !important;
     display: inline-block !important;
 }
-
-
 
 .btn-primary, .btn-default.btn-primary {
     background-color: var(--brand-primary) !important;
@@ -49,6 +47,11 @@ a, .indicator-pill {
 
 .page-head {
     background-color: var(--brand-secondary) !important;
+}
+
+/* ── Hide default Frappe splash — replaced with brand logo via file copy ── */
+.centered.splash {
+    display: none !important;
 }
 
 /* ── Custom CSS ── */

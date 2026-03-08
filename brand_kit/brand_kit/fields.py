@@ -238,4 +238,9 @@ def ensure_brand_settings_doctype():
     })
     doc.insert(ignore_permissions=True)
     frappe.db.commit()
+
+    frappe.db.sql("UPDATE `tabDocType` SET issingle=1 WHERE name='Brand Settings'")
+    frappe.db.commit()
+    frappe.clear_cache()
+    
     print("[Brand Kit] Created Brand Settings DocType.")

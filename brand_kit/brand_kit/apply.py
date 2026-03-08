@@ -25,6 +25,18 @@ def _upsert_single(doctype, field, value):
     )
 
 
+def get_boot_info(bootinfo):
+    """Inject brand logo into boot session so loader uses it."""
+    try:
+        logo = frappe.db.get_single_value("Brand Settings", "logo")
+        if logo:
+            bootinfo.app_logo_url = logo
+            bootinfo.brand_logo = logo
+            bootinfo.splash_image = logo
+    except Exception:
+        pass
+
+
 def apply_system_settings(brand):
     try:
         if not brand.brand_name:
@@ -132,8 +144,6 @@ body, .frappe-app {{
     display: inline-block !important;
 }}
 
-
-
 .btn-primary, .btn-default.btn-primary {{
     background-color: var(--brand-primary) !important;
     border-color: var(--brand-primary) !important;
@@ -151,6 +161,11 @@ a, .indicator-pill {{
 
 .page-head {{
     background-color: var(--brand-secondary) !important;
+}}
+
+/* ── Hide default Frappe splash — replaced with brand logo via file copy ── */
+.centered.splash {{
+    display: none !important;
 }}
 
 /* ── Custom CSS ── */
@@ -232,7 +247,6 @@ def apply_letterhead(brand):
 
 def apply_email_settings(brand):
     try:
-        # Update all outgoing email accounts with brand sender name
         accounts = frappe.get_all(
             "Email Account",
             filters={"enable_outgoing": 1},
@@ -261,7 +275,7 @@ def apply_all_branding(doc, method=None):
     Called automatically when Brand Settings is saved.
     Applies branding to all configured subsystems.
     """
-    brand = doc  # doc is passed directly from doc_events hook
+    brand = doc
 
     print("[Brand Kit] Applying branding...")
 
@@ -270,6 +284,13 @@ def apply_all_branding(doc, method=None):
     apply_css(brand)
     apply_letterhead(brand)
     apply_email_settings(brand)
+
+    # Replace splash image with brand logo
+    try:
+        from brand_kit.tasks import _replace_splash_image
+        _replace_splash_image()
+    except Exception as e:
+        frappe.log_error(title="Brand Kit: Splash", message=str(e))
 
     frappe.db.commit()
     frappe.msgprint(
