@@ -25,7 +25,7 @@ Brand Kit replaces all Frappe default branding with your own across:
 
 ```bash
 # Get the app
-bench get-app brand_kit https://github.com/your-username/brand_kit.git
+bench get-app brand_kit https://github.com/olayemi5/brand_kit.git
 
 # Install on your site
 bench --site your-site.com install-app brand_kit
