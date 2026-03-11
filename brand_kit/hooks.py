@@ -24,7 +24,11 @@ scheduler_events = {
 }
 
 app_include_css = [
-    "/assets/brand_kit/css/brand.css"
+    "/assets/brand_kit/css/brand.css?v=2"
+]
+
+app_include_js = [
+    "/assets/brand_kit/js/brand.js"
 ]
 
 boot_session = "brand_kit.brand_kit.apply.get_boot_info"

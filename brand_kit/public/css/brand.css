@@ -3,9 +3,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
-    --brand-primary: #4F9DD9;
+    --brand-primary: #0d402d;
     --brand-secondary: #F5F5F5;
-    --brand-accent: #d6beb0;
+    --brand-accent: #7b7b87;
     --brand-text: #1A1A1A;
     --brand-font: 'Inter', sans-serif;
     --brand-font-size: 14px;
